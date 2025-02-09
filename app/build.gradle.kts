@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.escrow.wazipay_admin"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.escrow.wazipay_admin"
