@@ -1,4 +1,4 @@
-package com.escrow.wazipay.data.network.models.user
+package com.escrow.wazipay_admin.data.network.models.user
 
 import kotlinx.serialization.Serializable
 
