@@ -64,3 +64,37 @@ val users = List(10) {index ->
         idBack = "http://192.168.100.5:8000/images/1735188979595_Screenshotfrom2023-02-0217-22-42.png"
     )
 }
+
+val userVerificationData = UserVerificationData(
+    id = 1,
+    userId = 1,
+    username = "Mary Ann",
+    phoneNumber = "0794649026",
+    verified = true,
+    verificationStatus = "VERIFIED",
+    createdAt = "2024-12-03T14:01:09",
+    verifiedAt = "2024-12-26T08:45:46.053342",
+    roles = listOf("BUYER", "MERCHANT", "ADMIN"),
+    idFront = "http://192.168.100.5:8000/wazipay-api/wazipayimages/1735188979592_Screenshotfrom2024-01-3118-44-22.png",
+    idBack = "http://192.168.100.5:8000/wazipay-api/wazipayimages/1735188979595_Screenshotfrom2023-02-0217-22-42.png",
+    verifiedBy = userDetailsData,
+    email = "mary@gmail.com"
+)
+
+val userVerifications = List(10) {index ->
+    UserVerificationData(
+        id = index + 1,
+        userId = index + 1,
+        username = "Mary Ann",
+        phoneNumber = "0794649026",
+        verified = true,
+        verificationStatus = "VERIFIED",
+        createdAt = "2024-12-03T14:01:09",
+        verifiedAt = "2024-12-26T08:45:46.053342",
+        roles = listOf("BUYER", "MERCHANT", "ADMIN"),
+        idFront = "http://192.168.100.5:8000/wazipay-api/wazipayimages/1735188979592_Screenshotfrom2024-01-3118-44-22.png",
+        idBack = "http://192.168.100.5:8000/wazipay-api/wazipayimages/1735188979595_Screenshotfrom2023-02-0217-22-42.png",
+        verifiedBy = userDetailsData,
+        email = "mary@gmail.com"
+    )
+}

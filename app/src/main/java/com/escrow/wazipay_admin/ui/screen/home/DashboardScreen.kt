@@ -45,15 +45,12 @@ fun DashboardScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .fillMaxSize()
-            .padding(
-                vertical = screenHeight(x = 16.0),
-                horizontal = screenWidth(x = 16.0)
-            )
+//            .padding(
+//                vertical = screenHeight(x = 16.0),
+//                horizontal = screenWidth(x = 16.0)
+//            )
     ) {
-        Text(
-            text = "Dashboard",
-            fontSize = screenFontSize(x = 14.0).sp
-        )
+        UsersScreenComposable()
     }
 }
 
