@@ -5,6 +5,9 @@ import com.escrow.wazipay_admin.data.network.models.auth.LoginResponseBody
 import com.escrow.wazipay_admin.data.network.models.user.UserVerificationResponseBody
 import com.escrow.wazipay_admin.data.network.models.user.UsersVerificationsResponseBody
 import retrofit2.Response
+import retrofit2.http.Header
+import retrofit2.http.PUT
+import retrofit2.http.Path
 import java.time.LocalDate
 
 interface ApiRepository {
@@ -25,6 +28,12 @@ interface ApiRepository {
 
     //    Get user verification
     suspend fun getUserVerification(
+        token: String,
+        userId: Int,
+    ): Response<UserVerificationResponseBody>
+
+    //    Verify user
+    suspend fun verifyUser(
         token: String,
         userId: Int,
     ): Response<UserVerificationResponseBody>

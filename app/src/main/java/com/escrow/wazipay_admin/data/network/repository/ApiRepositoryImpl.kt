@@ -37,4 +37,13 @@ class ApiRepositoryImpl(private val apiService: ApiService): ApiRepository {
             token = "Bearer $token",
             verificationId = userId
         )
+
+    override suspend fun verifyUser(
+        token: String,
+        userId: Int
+    ): Response<UserVerificationResponseBody> =
+        apiService.verifyUser(
+            token = "Bearer $token",
+            userId = userId
+        )
 }

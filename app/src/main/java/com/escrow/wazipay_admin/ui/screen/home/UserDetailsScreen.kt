@@ -1,6 +1,7 @@
 package com.escrow.wazipay_admin.ui.screen.home
 
 import android.os.Build
+import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.AlertDialog
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -29,9 +31,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -75,8 +81,14 @@ fun UserDetailsScreenComposable(
     modifier: Modifier = Modifier
 ) {
 
+    val context = LocalContext.current
+
     val viewModel: UserDetailsViewModel = viewModel(factory = AppViewModelFactory.Factory)
     val uiState by viewModel.uiState.collectAsState()
+
+    var showVerifyUserDialog by rememberSaveable {
+        mutableStateOf(false)
+    }
 
     val pullRefreshState = rememberPullRefreshState(
         refreshing = uiState.loadingStatus == LoadingStatus.LOADING,
@@ -84,6 +96,25 @@ fun UserDetailsScreenComposable(
             viewModel.initializeData()
         }
     )
+
+    if(uiState.loadingVerificationStatus == LoadingVerificationStatus.SUCCESS) {
+        showVerifyUserDialog = false
+        viewModel.initializeData()
+        Toast.makeText(context, "User verified successfully", Toast.LENGTH_SHORT).show()
+        viewModel.resetStatus()
+    }
+
+    if(showVerifyUserDialog) {
+        VerifyUserDialog(
+            onConfirm = {
+                showVerifyUserDialog = !showVerifyUserDialog
+                viewModel.verifyUser()
+            },
+            onDismiss = {
+                showVerifyUserDialog = !showVerifyUserDialog
+            }
+        )
+    }
 
     Box(
         modifier = Modifier
@@ -93,6 +124,10 @@ fun UserDetailsScreenComposable(
             pullRefreshState = pullRefreshState,
             user = uiState.user,
             loadingStatus = uiState.loadingStatus,
+            loadingVerificationStatus = uiState.loadingVerificationStatus,
+            onVerify = {
+                showVerifyUserDialog = !showVerifyUserDialog
+            },
             navigateToPreviousScreen = navigateToPreviousScreen,
 
         )
@@ -106,6 +141,8 @@ fun UserDetailsScreen(
     pullRefreshState: PullRefreshState?,
     user: UserVerificationData,
     loadingStatus: LoadingStatus,
+    loadingVerificationStatus: LoadingVerificationStatus,
+    onVerify: () -> Unit,
     navigateToPreviousScreen: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -392,19 +429,66 @@ fun UserDetailsScreen(
             }
             Spacer(modifier = Modifier.weight(1f))
             Button(
-                enabled = user.verificationStatus == "PENDING_VERIFICATION",
-                onClick = { /*TODO*/ },
+                enabled = user.verificationStatus == "PENDING_VERIFICATION" && loadingVerificationStatus != LoadingVerificationStatus.LOADING,
+                onClick = onVerify,
                 modifier = Modifier
                     .fillMaxWidth()
             ) {
-                Text(
-                    text = "Verify user",
-                    fontSize = screenFontSize(x = 14.0).sp
-                )
+                if(loadingVerificationStatus == LoadingVerificationStatus.LOADING) {
+                    Text(
+                        text = "Verifying...",
+                        fontSize = screenFontSize(x = 14.0).sp
+                    )
+                } else {
+                    Text(
+                        text = "Verify user",
+                        fontSize = screenFontSize(x = 14.0).sp
+                    )
+                }
+
             }
         }
 
     }
+}
+
+@Composable
+fun VerifyUserDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    AlertDialog(
+        title = {
+            Text(
+                text = "Verify user",
+                fontSize = screenFontSize(x = 16.0).sp,
+            )
+        },
+        text = {
+            Text(
+                text = "Are you sure you want to verify this user?",
+                fontSize = screenFontSize(x = 14.0).sp
+            )
+        },
+        onDismissRequest = onDismiss,
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    text = "Cancel",
+                    fontSize = screenFontSize(x = 14.0).sp
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = onConfirm) {
+                Text(
+                    text = "Confirm verification",
+                    fontSize = screenFontSize(x = 14.0).sp
+                )
+            }
+        }
+    )
 }
 
 @OptIn(ExperimentalMaterialApi::class)
@@ -417,6 +501,8 @@ fun UserDetailsScreenPreview() {
             pullRefreshState = null,
             user = userVerificationData,
             loadingStatus = LoadingStatus.INITIAL,
+            loadingVerificationStatus = LoadingVerificationStatus.INITIAL,
+            onVerify = {},
             navigateToPreviousScreen = {}
         )
     }

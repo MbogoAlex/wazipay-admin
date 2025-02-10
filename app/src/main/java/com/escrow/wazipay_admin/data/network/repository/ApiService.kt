@@ -10,6 +10,7 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
 import java.time.LocalDate
@@ -37,5 +38,12 @@ interface ApiService {
     suspend fun getUserVerification(
         @Header("Authorization") token: String,
         @Path("verificationId") verificationId: Int,
+    ): Response<UserVerificationResponseBody>
+
+//    Verify user
+    @PUT("admin/user-verification/{userId}")
+    suspend fun verifyUser(
+        @Header("Authorization") token: String,
+        @Path("userId") userId: Int,
     ): Response<UserVerificationResponseBody>
 }

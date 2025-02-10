@@ -119,6 +119,7 @@ fun UsersScreenComposable(
             .safeDrawingPadding()
     ) {
         UsersScreen(
+            adminUsername = uiState.userDetails.username ?: "",
             pullRefreshState = pullRefreshState,
             totalPages = uiState.totalPages,
             currentPage = uiState.currentPage,
@@ -148,6 +149,7 @@ fun UsersScreenComposable(
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun UsersScreen(
+    adminUsername: String,
     pullRefreshState: PullRefreshState?,
     totalPages: Int,
     currentPage: Int,
@@ -190,6 +192,26 @@ fun UsersScreen(
                 .weight(1f)
         ) {
             Column {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.account_box),
+                        contentDescription = null
+                    )
+                    Spacer(modifier = Modifier.width(screenWidth(x = 4.0)))
+                    Text(
+                        text = "ADMIN:",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = screenFontSize(x = 14.0).sp
+                    )
+                    Spacer(modifier = Modifier.width(screenWidth(x = 4.0)))
+                    Text(
+                        text = adminUsername,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = screenFontSize(x = 14.0).sp
+                    )
+                }
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -744,6 +766,7 @@ fun DateRangePicker(
 fun UsersScreenPreview() {
     WazipayadminTheme {
         UsersScreen(
+            adminUsername = "Alex",
             pullRefreshState = null,
             totalPages = 1,
             currentPage = 1,

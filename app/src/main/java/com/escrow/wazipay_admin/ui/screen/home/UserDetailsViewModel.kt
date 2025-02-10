@@ -70,6 +70,46 @@ class UserDetailsViewModel(
         }
     }
 
+    fun verifyUser() {
+        _uiState.update {
+            it.copy(
+                loadingVerificationStatus = LoadingVerificationStatus.LOADING
+            )
+        }
+
+        viewModelScope.launch {
+            try {
+               val response = apiRepository.verifyUser(
+                   token = uiState.value.userDetails.token!!,
+                   userId = uiState.value.user.userId
+               )
+
+                if(response.isSuccessful) {
+                    _uiState.update {
+                        it.copy(
+                            loadingVerificationStatus = LoadingVerificationStatus.SUCCESS
+                        )
+                    }
+                } else {
+                    _uiState.update {
+                        it.copy(
+                            loadingVerificationStatus = LoadingVerificationStatus.FAIL
+                        )
+                    }
+                    Log.e("userVerification", "response: $response")
+                }
+
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        loadingVerificationStatus = LoadingVerificationStatus.FAIL
+                    )
+                }
+                Log.e("userVerification", "exception: $e")
+            }
+        }
+    }
+
     private fun getUser() {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
@@ -90,6 +130,15 @@ class UserDetailsViewModel(
                 delay(2000)
             }
             getUserVerificationDetails()
+        }
+    }
+
+    fun resetStatus() {
+        _uiState.update {
+            it.copy(
+                loadingStatus = LoadingStatus.INITIAL,
+                loadingVerificationStatus = LoadingVerificationStatus.INITIAL
+            )
         }
     }
 
