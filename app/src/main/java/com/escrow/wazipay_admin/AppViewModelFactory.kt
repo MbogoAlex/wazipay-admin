@@ -8,6 +8,8 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.escrow.wazipay_admin.ui.screen.auth.LoginViewModel
+import com.escrow.wazipay_admin.ui.screen.home.UserDetailsViewModel
+import com.escrow.wazipay_admin.ui.screen.home.UsersViewModel
 import com.escrow.wazipay_admin.ui.screen.start.SplashViewModel
 
 object AppViewModelFactory {
@@ -22,6 +24,21 @@ object AppViewModelFactory {
 
         initializer {
             LoginViewModel(
+                apiRepository = wazipayApplication().container.apiRepository,
+                dbRepository = wazipayApplication().container.dbRepository,
+                savedStateHandle = this.createSavedStateHandle()
+            )
+        }
+
+        initializer {
+            UsersViewModel(
+                apiRepository = wazipayApplication().container.apiRepository,
+                dbRepository = wazipayApplication().container.dbRepository,
+            )
+        }
+
+        initializer {
+            UserDetailsViewModel(
                 apiRepository = wazipayApplication().container.apiRepository,
                 dbRepository = wazipayApplication().container.dbRepository,
                 savedStateHandle = this.createSavedStateHandle()

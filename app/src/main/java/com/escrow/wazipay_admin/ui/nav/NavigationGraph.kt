@@ -13,8 +13,11 @@ import com.escrow.wazipay_admin.ui.screen.auth.LoginScreenComposable
 import com.escrow.wazipay_admin.ui.screen.auth.LoginScreenDestination
 import com.escrow.wazipay_admin.ui.screen.home.DashboardScreenComposable
 import com.escrow.wazipay_admin.ui.screen.home.DashboardScreenDestination
+import com.escrow.wazipay_admin.ui.screen.home.UserDetailsScreenComposable
+import com.escrow.wazipay_admin.ui.screen.home.UserDetailsScreenDestination
 import com.escrow.wazipay_admin.ui.screen.start.SplashScreenComposable
 import com.escrow.wazipay_admin.ui.screen.start.SplashScreenDestination
+import kotlin.reflect.typeOf
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -68,7 +71,29 @@ fun NavigationGraph(
         }
 
         composable(DashboardScreenDestination.route) {
-            DashboardScreenComposable()
+            DashboardScreenComposable(
+                navigateToLoginScreenWithArgs = {phoneNumber, pin ->
+                    navController.navigate("${LoginScreenDestination.route}/${phoneNumber}/${pin}")
+                },
+                navigateToUserDetailsScreen = {
+                    navController.navigate("${UserDetailsScreenDestination.route}/${it}")
+                }
+            )
+        }
+
+        composable(
+            UserDetailsScreenDestination.routeWithArgs,
+            arguments = listOf(
+                navArgument(UserDetailsScreenDestination.userId) {
+                    type = NavType.StringType
+                }
+            )
+        ) {
+            UserDetailsScreenComposable(
+                navigateToPreviousScreen = {
+                    navController.navigateUp()
+                }
+            )
         }
     }
 }

@@ -12,9 +12,10 @@ data class UserVerificationData(
     val verified: Boolean?,
     val verificationStatus: String,
     val createdAt: String,
+    val verificationRequestedOn: String?,
     val verifiedAt: String?,
     val roles: List<String>,
     val idFront: String?,
     val idBack: String?,
-    val verifiedBy: UserDetailsData,
+    val verifiedBy: UserDetailsData?,
 )

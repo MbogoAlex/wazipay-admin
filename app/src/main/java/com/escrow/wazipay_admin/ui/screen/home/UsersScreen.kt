@@ -27,6 +27,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
@@ -35,6 +36,9 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.PullRefreshState
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
@@ -47,6 +51,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -57,13 +62,17 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.escrow.wazipay.utils.formatIsoDateTime2
 import com.escrow.wazipay.utils.screenFontSize
 import com.escrow.wazipay.utils.screenHeight
 import com.escrow.wazipay.utils.screenWidth
+import com.escrow.wazipay_admin.AppViewModelFactory
 import com.escrow.wazipay_admin.R
 import com.escrow.wazipay_admin.data.network.models.user.UserVerificationData
 import com.escrow.wazipay_admin.data.network.models.user.VerificationStatus
@@ -74,11 +83,34 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
+@OptIn(ExperimentalMaterialApi::class)
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun UsersScreenComposable(
+    navigateToLoginScreenWithArgs: (phoneNumber: String, pin: String) -> Unit,
+    navigateToUserDetailsScreen: (userId: String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+
+    val viewModel: UsersViewModel = viewModel(factory = AppViewModelFactory.Factory)
+    val uiState by viewModel.uiState.collectAsState()
+
+    if(uiState.loadingStatus == LoadingStatus.FAIL) {
+        if(uiState.unauthorized) {
+            val phone = uiState.userDetails.phoneNumber!!
+            val pin = uiState.userDetails.pin!!
+            navigateToLoginScreenWithArgs(phone, pin)
+        }
+        viewModel.resetStatus()
+    }
+
+    val pullRefreshState = rememberPullRefreshState(
+        refreshing = uiState.loadingStatus == LoadingStatus.LOADING,
+        onRefresh = {
+            viewModel.initializeData()
+        }
+    )
+
     var filtering by rememberSaveable {
         mutableStateOf(false)
     }
@@ -87,29 +119,36 @@ fun UsersScreenComposable(
             .safeDrawingPadding()
     ) {
         UsersScreen(
-            totalPages = 1,
-            currentPage = 1,
-            currentCount = 8,
-            totalCount = 8,
-            startDate = LocalDate.now().withDayOfMonth(1),
-            endDate = LocalDate.now(),
-            onChangeStartDate = {},
-            onChangeEndDate = {},
+            pullRefreshState = pullRefreshState,
+            totalPages = uiState.totalPages,
+            currentPage = uiState.currentPage,
+            currentCount = uiState.currentCount,
+            totalCount = uiState.totalCount,
+            startDate = LocalDate.parse(uiState.startDate),
+            endDate = LocalDate.parse(uiState.endDate),
+            onChangeStartDate = viewModel::changeStartDate,
+            onChangeEndDate = viewModel::changeEndDate,
             filtering = filtering,
             onFilter = {
                 filtering = !filtering
             },
             onClearSearch = {},
-            onChangeSearchText = {},
-            searchText = "",
-            users = userVerifications
+            onChangeSearchText = viewModel::changeSearchText,
+            searchText = uiState.searchText,
+            onChangeStatus = viewModel::changeStatus,
+            onChangePage = viewModel::changePage,
+            loadingStatus = uiState.loadingStatus,
+            navigateToUserDetailsScreen = navigateToUserDetailsScreen,
+            users = uiState.users
         )
     }
 }
 
+@OptIn(ExperimentalMaterialApi::class)
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun UsersScreen(
+    pullRefreshState: PullRefreshState?,
     totalPages: Int,
     currentPage: Int,
     currentCount: Int,
@@ -124,6 +163,10 @@ fun UsersScreen(
     onChangeSearchText: (value: String) -> Unit,
     onChangeStartDate: (date: LocalDate) -> Unit,
     onChangeEndDate: (date: LocalDate) -> Unit,
+    onChangeStatus: (status: String) -> Unit,
+    onChangePage: (page: Int) -> Unit,
+    navigateToUserDetailsScreen: (userId: String) -> Unit,
+    loadingStatus: LoadingStatus,
     modifier: Modifier = Modifier
 ) {
     val stages = listOf("All", "Unverified", "Pending verification", "Verified")
@@ -200,6 +243,7 @@ fun UsersScreen(
                                         },
                                         onClick = {
                                             selectedStage = stage
+                                            onChangeStatus(selectedStage)
                                             expanded = !expanded
                                         }
                                     )
@@ -326,10 +370,39 @@ fun UsersScreen(
                 }
 
                 Spacer(modifier = Modifier.height(screenHeight(x = 8.0)))
-                LazyColumn {
-                    items(users) {user ->
-                        UserCell(user = user)
-                        Spacer(modifier = Modifier.height(screenHeight(x = 16.0)))
+                if(loadingStatus == LoadingStatus.LOADING) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .fillMaxSize()
+                    ) {
+                        PullRefreshIndicator(
+                            refreshing = true,
+                            state = pullRefreshState!!
+                        )
+                    }
+                } else {
+                    if(users.isEmpty()) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .fillMaxSize()
+                        ) {
+                            Text(
+                                text = if(selectedStage == "All") "No users found" else "No $selectedStage users",
+                                fontSize = screenFontSize(x = 16.0).sp
+                            )
+                        }
+                    } else {
+                        LazyColumn {
+                            items(users) {user ->
+                                UserCell(
+                                    user = user,
+                                    navigateToUserDetailsScreen = navigateToUserDetailsScreen
+                                )
+                                Spacer(modifier = Modifier.height(screenHeight(x = 16.0)))
+                            }
+                        }
                     }
                 }
             }
@@ -342,7 +415,9 @@ fun UsersScreen(
         ) {
             IconButton(
                 enabled = currentPage > 1,
-                onClick = { /*TODO*/ }
+                onClick = {
+                    onChangePage(currentPage - 1)
+                }
             ) {
                 Icon(
                     imageVector = Icons.Default.KeyboardArrowLeft,
@@ -352,7 +427,9 @@ fun UsersScreen(
             Text(text = "$currentPage / $totalPages")
             IconButton(
                 enabled = currentPage < totalPages,
-                onClick = { /*TODO*/ }
+                onClick = {
+                    onChangePage(currentPage + 1)
+                }
             ) {
                 Icon(
                     imageVector = Icons.Default.KeyboardArrowRight,
@@ -364,9 +441,11 @@ fun UsersScreen(
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun UserCell(
     user: UserVerificationData,
+    navigateToUserDetailsScreen: (userId: String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -430,7 +509,9 @@ fun UserCell(
                             VerificationStatus.UNVERIFIED -> {
                                 Icon(
                                     painter = painterResource(id = R.drawable.unverified),
-                                    contentDescription = "Unverified"
+                                    contentDescription = "Unverified",
+                                    modifier = Modifier
+                                        .size(screenWidth(x = 24.0))
                                 )
                             }
                             VerificationStatus.VERIFIED -> {
@@ -476,8 +557,23 @@ fun UserCell(
 
             }
             Spacer(modifier = Modifier.height(screenHeight(x = 8.0)))
+            Text(
+                text = "Created on:",
+                fontSize = screenFontSize(x = 14.0).sp,
+//                fontStyle = FontStyle.Italic,
+//                fontWeight = FontWeight.W500
+            )
+            Text(
+                text = formatIsoDateTime2(LocalDateTime.parse(user.createdAt)),
+                fontSize = screenFontSize(x = 14.0).sp,
+                fontStyle = FontStyle.Italic,
+                fontWeight = FontWeight.W500
+            )
+            Spacer(modifier = Modifier.height(screenHeight(x = 8.0)))
             OutlinedButton(
-                onClick = { /*TODO*/ },
+                onClick = {
+                    navigateToUserDetailsScreen(user.userId.toString())
+                },
                 modifier = Modifier
                     .fillMaxWidth()
             ) {
@@ -641,12 +737,14 @@ fun DateRangePicker(
     }
 }
 
+@OptIn(ExperimentalMaterialApi::class)
 @RequiresApi(Build.VERSION_CODES.O)
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun UsersScreenPreview() {
     WazipayadminTheme {
         UsersScreen(
+            pullRefreshState = null,
             totalPages = 1,
             currentPage = 1,
             currentCount = 8,
@@ -660,6 +758,10 @@ fun UsersScreenPreview() {
             onClearSearch = {},
             onChangeSearchText = {},
             searchText = "",
+            onChangePage = {},
+            onChangeStatus = {},
+            loadingStatus = LoadingStatus.INITIAL,
+            navigateToUserDetailsScreen = {},
             users = userVerifications
         )
     }
